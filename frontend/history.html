@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>History - ReadmeAI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d5e3fc",
+                        "surface-variant": "#d5e3fc",
+                        "surface-container": "#e6eeff",
+                        "outline": "#78767e",
+                        "on-tertiary-container": "#5c5f61",
+                        "primary-fixed": "#e2dfff",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "on-surface-variant": "#47464d",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-primary-fixed": "#181837",
+                        "secondary-fixed-dim": "#a8d0b6",
+                        "tertiary-container": "#d8dadc",
+                        "inverse-on-surface": "#eaf1ff",
+                        "tertiary-fixed": "#e0e3e5",
+                        "secondary-container": "#c3ecd2",
+                        "error-container": "#ffdad6",
+                        "surface": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#2a4e3a",
+                        "surface-container-high": "#dce9ff",
+                        "secondary": "#426651",
+                        "inverse-surface": "#233144",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#d8d6ff",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#5c5b7e",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary-fixed": "#002112",
+                        "inverse-primary": "#c4c3eb",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#c3ecd2",
+                        "on-primary-fixed-variant": "#444465",
+                        "tertiary": "#5c5f61",
+                        "outline-variant": "#c8c5ce",
+                        "on-secondary-container": "#486c57",
+                        "surface-dim": "#ccdbf3",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-container": "#5c5c7e",
+                        "primary-fixed-dim": "#c4c3eb",
+                        "on-surface": "#0d1c2e",
+                        "error": "#ba1a1a",
+                        "on-background": "#0d1c2e",
+                        "background": "#f8f9ff",
+                        "primary": "#5c5b7e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding": "2rem",
+                        "unit": "4px",
+                        "section-gap": "4rem",
+                        "gutter": "1.5rem"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-sm": ["13px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #f8f9ff; /* surface */
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface bg-surface min-h-screen flex">
+<!-- SideNavBar (Web Only) -->
+<nav class="hidden md:flex bg-white/60 dark:bg-surface-container/60 backdrop-blur-xl h-screen w-64 rounded-r-xl sticky top-0 border-r border-white/20 dark:border-outline-variant shadow-sm shadow-primary/5 flex-col p-gutter gap-4 z-40">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-primary overflow-hidden">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed">AI Studio</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">README Assistant</p>
+</div>
+</div>
+<button class="w-full py-3 px-4 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-label-sm text-label-sm shadow-sm hover:scale-[1.02] hover:backdrop-blur-2xl transition-all duration-300 active:scale-95 mb-6 flex justify-center items-center gap-2">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+            New Generation
+        </button>
+<div class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 p-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl font-body-md text-body-md hover:scale-[1.02] duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>
+                Refine
+            </a>
+<a class="flex items-center gap-3 p-3 bg-primary/10 dark:bg-primary-fixed/20 text-primary dark:text-primary-fixed rounded-xl font-body-md text-body-md hover:scale-[1.02] transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="history" style="font-variation-settings: 'FILL' 1;">history</span>
+                History
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+<!-- TopNavBar (Mobile mainly, but integrated) -->
+<header class="bg-white/60 dark:bg-surface-container/60 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-white/20 dark:border-outline-variant shadow-sm shadow-primary/5 md:pl-64 transition-all">
+<div class="flex justify-between items-center px-container-padding py-4 max-w-[1200px] mx-auto">
+<div class="flex items-center gap-2">
+<span class="md:hidden font-headline-md text-headline-md text-primary dark:text-primary-fixed">ReadmeAI</span>
+</div>
+<!-- Nav Links (Hidden on mobile, redundant to side nav but keeping per JSON structure for TopNavBar) -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary hover:scale-[1.02] transition-all duration-300">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+<button class="hidden md:block py-2 px-6 rounded-full border border-primary/20 text-primary hover:bg-primary hover:text-on-primary transition-colors font-label-sm text-label-sm">
+                        Sign In
+                    </button>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 pt-24 px-container-padding pb-section-gap max-w-[1200px] w-full mx-auto md:pl-10">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Generation History</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Review and manage your previously generated READMEs.</p>
+</div>
+<div class="flex flex-col sm:flex-row gap-3">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" data-icon="search">search</span>
+<input class="w-full sm:w-64 pl-12 pr-4 py-3 rounded-full bg-white/40 border-white/40 border focus:border-primary focus:bg-white/60 focus:ring-0 transition-all backdrop-blur-md font-body-md text-body-md placeholder:text-on-surface-variant/70 text-on-surface shadow-[0_4px_20px_-10px_rgba(92,91,126,0.05)]" placeholder="Search repositories..." type="text"/>
+</div>
+<button class="flex items-center gap-2 px-5 py-3 rounded-full bg-white/60 border border-white/40 hover:border-primary/30 backdrop-blur-md text-on-surface-variant font-label-sm text-label-sm hover:scale-[1.02] transition-all shadow-[0_4px_20px_-10px_rgba(92,91,126,0.05)]">
+<span class="material-symbols-outlined text-lg" data-icon="filter_list">filter_list</span>
+                        Filter
+                        <span class="material-symbols-outlined text-sm ml-1" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="group relative bg-white/60 backdrop-blur-md rounded-xl border border-white/20 p-5 flex flex-col gap-4 shadow-[0_8px_30px_-12px_rgba(92,91,126,0.08)] hover:shadow-[0_12px_40px_-12px_rgba(92,91,126,0.15)] transition-all duration-300 hover:scale-[1.01] hover:bg-white/70 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</div>
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface">facebook/react</h3>
+<p class="text-[12px] text-on-surface-variant mt-0.5">2 hours ago</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-secondary-container/50 text-secondary text-[11px] font-bold tracking-wider uppercase border border-secondary/10">Live</span>
+</div>
+<div class="h-32 rounded-lg bg-surface-container-low border border-white/30 overflow-hidden relative">
+<img alt="Code preview" class="w-full h-full object-cover opacity-80 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500" data-alt="A modern, dark-themed code editor window displaying complex JavaScript React code, softly illuminated in a high-key, minimalist light-mode environment. The image features a shallow depth of field, blurring the background slightly while keeping the colorful syntax highlighting sharp. The overall mood is tech-forward but serene, aligning with a soft-tech aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPwn9umIKQgZ7eFLFeWTHNn3FDfqyt049ZxoPqBXO3Dfcxz8bSgn-uFEjN5V9Xb3brZ1xsWgo31avz8OozroYg4C0L_bQQOQRlhGV2t76bG4NLtZ2H66H8Jvgubykh6-_lo7qJQbusK8vj85xRGCcw3gq6cEUnk-U1JtXKes5XNpumeal7srkncCePsgC1bSVu0BLFuUSiXKPjmsrUij4dqXd3ulJSfo7KAPD2R29g_rWx55a7Q7njjpwflG-p7_t2LmcD4iIRZ80"/>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-2">
+<button class="flex-1 py-2 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:scale-[1.02] transition-transform shadow-sm shadow-primary/20">Open</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/50 hover:bg-white border border-white/50 text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="content_copy">content_copy</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/50 hover:bg-error-container/50 border border-white/50 text-on-surface-variant hover:text-error transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group relative bg-white/60 backdrop-blur-md rounded-xl border border-white/20 p-5 flex flex-col gap-4 shadow-[0_8px_30px_-12px_rgba(92,91,126,0.08)] hover:shadow-[0_12px_40px_-12px_rgba(92,91,126,0.15)] transition-all duration-300 hover:scale-[1.01] hover:bg-white/70 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="api">api</span>
+</div>
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface">vercel/next.js</h3>
+<p class="text-[12px] text-on-surface-variant mt-0.5">Oct 24, 2023</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary-container/50 text-primary text-[11px] font-bold tracking-wider uppercase border border-primary/10">Draft</span>
+</div>
+<div class="h-32 rounded-lg bg-surface-container-low border border-white/30 overflow-hidden relative p-4 flex items-center justify-center">
+<div class="w-full h-full border border-dashed border-outline-variant/50 rounded flex items-center justify-center text-on-surface-variant/50">
+<span class="material-symbols-outlined text-4xl" data-icon="schema">schema</span>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-2">
+<button class="flex-1 py-2 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:scale-[1.02] transition-transform shadow-sm shadow-primary/20">Open</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/50 hover:bg-white border border-white/50 text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="content_copy">content_copy</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/50 hover:bg-error-container/50 border border-white/50 text-on-surface-variant hover:text-error transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group relative bg-white/60 backdrop-blur-md rounded-xl border border-white/20 p-5 flex flex-col gap-4 shadow-[0_8px_30px_-12px_rgba(92,91,126,0.08)] hover:shadow-[0_12px_40px_-12px_rgba(92,91,126,0.15)] transition-all duration-300 hover:scale-[1.01] hover:bg-white/70 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="code_blocks">code_blocks</span>
+</div>
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface">tailwindlabs/tailwindcss</h3>
+<p class="text-[12px] text-on-surface-variant mt-0.5">Oct 20, 2023</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-secondary-container/50 text-secondary text-[11px] font-bold tracking-wider uppercase border border-secondary/10">Live</span>
+</div>
+<div class="h-32 rounded-lg bg-surface-container-low border border-white/30 overflow-hidden relative">
+<img alt="UI Design preview" class="w-full h-full object-cover opacity-80 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500" data-alt="A clean, minimalist UI design mockup featuring bright, airy pastel colors and soft glassmorphism effects. The layout is structured but floating, bathed in soft, diffused studio lighting typical of a high-end light-mode aesthetic. The focus is on a central card component with subtle drop shadows, conveying a sense of modern, calm technology." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGGzf5A6fBsEHLP-xRVHPj6gBH7SNhohZqvglN_t6CX0O4meZ5KBMGTwZCsdVaR3M0OyuCRWajXWVWOs21dW956Rncne_Xd6obI267hSDjJFsc4daeST9NzSGnv33HDtf15Kqi0JKKOkAMXXvEyg8d_DLwQprCgekbYrjJeKPmAvJWmn-hpu0Mllq7-3A0N1VZK_cXZP7VkiRV-LeTg4TrHnt664ypPWv6e5IUJus4xIILRHaJvTSqqqT4V9lDxTOKJSkN-2iXM9o"/>
+</div>
+<div class="flex items-center gap-2 mt-auto pt-2">
+<button class="flex-1 py-2 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:scale-[1.02] transition-transform shadow-sm shadow-primary/20">Open</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/50 hover:bg-white border border-white/50 text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="content_copy">content_copy</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/50 hover:bg-error-container/50 border border-white/50 text-on-surface-variant hover:text-error transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

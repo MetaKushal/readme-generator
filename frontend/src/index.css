@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: linear-gradient(135deg, #f8f9ff 0%, #eaf1ff 50%, #eff4ff 100%);
+    background-attachment: fixed;
+    color: #0d1c2e;
+}
+
+/* Custom dark scrollbar for the markdown preview */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d8d6ff;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #c4c3eb;
+}
+
+/* Hide scrollbar for the history section if needed */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(92, 91, 126, 0.2);
+    border-radius: 4px;
+}
