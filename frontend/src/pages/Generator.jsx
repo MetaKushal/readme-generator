@@ -1,47 +1,49 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, memo, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MermaidRenderer from '../components/MermaidRenderer';
 import { Link } from 'react-router-dom';
+import { saveSession, loadSession, saveToHistory } from '../utils/storage';
 
-// ─── Provider icon map ───────────────────────────────────────────────────────
 const PROVIDER_META = {
     Gemini: { icon: '✦', color: '#4f8ef7', bg: 'rgba(79,142,247,0.12)' },
     Groq:   { icon: '⚡', color: '#a259ff', bg: 'rgba(162,89,255,0.12)' },
     Cohere: { icon: '◈', color: '#19c37d', bg: 'rgba(25,195,125,0.12)' },
 };
 
-// ─── Loading Overlay (shown during initial generation) ────────────────────────
-function LoadingOverlay({ statusEvents }) {
+const Backdrop = memo(function Backdrop() {
+    return <div className="overlay-backdrop" />;
+});
+
+const StatusCard = memo(function StatusCard({ statusEvents }) {
     const latest = statusEvents[statusEvents.length - 1] || {};
     const providerMeta = PROVIDER_META[latest.provider] || {};
-    const timeline = statusEvents.map((e, i) => ({ ...e, key: i }));
+
+    const badgeStyle = useMemo(() => ({
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
+        background: providerMeta.bg, color: providerMeta.color,
+        borderRadius: '999px', padding: '0.3rem 1rem',
+        fontWeight: 600, fontSize: '0.85rem',
+        border: `1px solid ${(providerMeta.color || '#a259ff')}33`,
+    }), [providerMeta.bg, providerMeta.color]);
 
     return (
         <div style={{
             position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(255,255,255,0.55)',
-            backdropFilter: 'blur(18px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'inherit',
+            pointerEvents: 'none',
         }}>
-            <div style={{
-                background: 'rgba(255,255,255,0.80)',
-                border: '1px solid rgba(255,255,255,0.60)',
-                borderRadius: '2rem',
-                padding: '2.5rem 3rem',
-                minWidth: '380px',
-                maxWidth: '480px',
-                boxShadow: '0 24px 64px rgba(92,91,126,0.14)',
+            <div className="bg-white dark:bg-gray-900 border border-white/70 dark:border-gray-800" style={{
+                borderRadius: '2rem', padding: '2.5rem 3rem',
+                minWidth: '380px', maxWidth: '480px',
+                boxShadow: '0 24px 64px rgba(0,0,0,0.16)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem',
+                pointerEvents: 'auto',
             }}>
-                {/* Animated orb */}
                 <div style={{ position: 'relative', width: 80, height: 80 }}>
-                    <svg style={{ position: 'absolute', inset: 0, animation: 'spin 1.4s linear infinite' }}
-                        width="80" height="80" viewBox="0 0 80 80">
-                        <circle cx="40" cy="40" r="35" fill="none"
-                            stroke={providerMeta.color || '#a259ff'}
-                            strokeWidth="3.5" strokeDasharray="90 120" strokeLinecap="round" />
+                    <svg className="animate-spin-svg" style={{ position: 'absolute', inset: 0 }} width="80" height="80" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="35" fill="none" stroke={providerMeta.color || '#a259ff'} strokeWidth="3.5" strokeDasharray="90 120" strokeLinecap="round" />
                     </svg>
                     <div style={{
                         position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
@@ -53,33 +55,25 @@ function LoadingOverlay({ statusEvents }) {
                     </div>
                 </div>
 
-                {/* Provider badge */}
                 {latest.provider && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        background: providerMeta.bg, color: providerMeta.color,
-                        borderRadius: '999px', padding: '0.3rem 1rem',
-                        fontWeight: 600, fontSize: '0.85rem',
-                        border: `1px solid ${providerMeta.color}33`,
-                    }}>
+                    <div style={badgeStyle}>
                         <span>{providerMeta.icon}</span>
                         <span>{latest.provider}</span>
                         {latest.model && <span style={{ opacity: 0.6, fontWeight: 400 }}>· {latest.model}</span>}
                     </div>
                 )}
 
-                <p style={{ margin: 0, textAlign: 'center', fontSize: '1rem', fontWeight: 500, color: '#3a3a50', lineHeight: 1.5 }}>
+                <p className="text-gray-800 dark:text-gray-200" style={{ margin: 0, textAlign: 'center', fontSize: '1rem', fontWeight: 500, lineHeight: 1.5 }}>
                     {latest.message || 'Initializing…'}
                 </p>
 
-                {/* Timeline */}
-                {timeline.length > 0 && (
+                {statusEvents.length > 0 && (
                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {timeline.map((ev) => {
+                        {statusEvents.map((ev, i) => {
                             const meta = PROVIDER_META[ev.provider] || {};
-                            const isLast = ev.key === timeline[timeline.length - 1].key;
+                            const isLast = i === statusEvents.length - 1;
                             return (
-                                <div key={ev.key} style={{
+                                <div key={i} style={{
                                     display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
                                     opacity: isLast ? 1 : 0.45, transition: 'opacity 0.3s',
                                 }}>
@@ -87,10 +81,10 @@ function LoadingOverlay({ statusEvents }) {
                                         width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
                                         background: ev.type === 'success' ? '#19c37d'
                                             : ev.type === 'fallback' ? '#f59e0b'
-                                            : ev.type === 'error' ? '#ef4444'
+                                            : ev.type === 'error'   ? '#ef4444'
                                             : (meta.color || '#a259ff'),
                                     }} />
-                                    <span style={{ fontSize: '0.78rem', color: '#5c5c7b', lineHeight: 1.4 }}>
+                                    <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: '0.78rem', lineHeight: 1.4 }}>
                                         {ev.message}
                                     </span>
                                 </div>
@@ -98,41 +92,81 @@ function LoadingOverlay({ statusEvents }) {
                         })}
                     </div>
                 )}
-
-                <p style={{ margin: 0, fontSize: '0.72rem', color: '#9090b0' }}>
-                    Large repos may take up to 2 minutes
-                </p>
             </div>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
-}
+});
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+const LoadingOverlay = memo(function LoadingOverlay({ statusEvents }) {
+    return (
+        <>
+            <Backdrop />
+            <StatusCard statusEvents={statusEvents} />
+        </>
+    );
+});
+
+const MarkdownPreview = memo(function MarkdownPreview({ readme, isDark }) {
+    return (
+        <div className={`prose ${isDark ? 'prose-invert' : 'prose-slate'} max-w-4xl mx-auto font-body-md w-full`}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                    code({ node, inline, className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match && match[1] === 'mermaid') {
+                            return <MermaidRenderer chart={String(children).replace(/\n$/, '')} isDark={isDark} />;
+                        }
+                        return <code className={className} {...props}>{children}</code>;
+                    }
+                }}
+            >
+                {readme}
+            </ReactMarkdown>
+        </div>
+    );
+});
+
 export default function Generator() {
-    const [url, setUrl]               = useState('');
-    const [readme, setReadme]         = useState('');
+    const saved = useMemo(() => loadSession(), []);
+    const [isDark, setIsDark] = useState(() => {
+        const stored = localStorage.getItem('theme');
+        return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    });
+
+    const [url, setUrl]               = useState(saved?.url || '');
+    const [readme, setReadme]         = useState(saved?.readme || '');
+    const [chatHistory, setChatHistory] = useState(saved?.chatHistory || []);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isRefining, setIsRefining] = useState(false);   // separate flag for refinement
+    const [isRefining, setIsRefining] = useState(false);
     const [chatInput, setChatInput]   = useState('');
-    const [chatHistory, setChatHistory] = useState([]);
     const [error, setError]           = useState('');
     const [statusEvents, setStatusEvents] = useState([]);
-    const [exportMsg, setExportMsg]   = useState('');      // brief "Saved!" feedback
+    const [exportMsg, setExportMsg]   = useState('');
 
     const esRef = useRef(null);
 
-    // ── Initial generation via SSE ────────────────────────────────────────────
-    const generateReadme = () => {
-        if (!url) {
-            setError('Please enter a GitHub repository URL');
-            return;
+    useEffect(() => {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
         }
+    }, [isDark]);
+
+    useEffect(() => {
+        if (readme) {
+            saveSession({ url, readme, chatHistory });
+        }
+    }, [url, readme, chatHistory]);
+
+    const generateReadme = useCallback(() => {
+        if (!url) { setError('Please enter a GitHub repository URL'); return; }
         setError('');
         setIsGenerating(true);
         setStatusEvents([]);
-
-        // Close any existing SSE connection
         if (esRef.current) esRef.current.close();
 
         const params = new URLSearchParams({ repoUrl: url });
@@ -141,131 +175,109 @@ export default function Generator() {
 
         es.onmessage = (e) => {
             const event = JSON.parse(e.data);
-
             if (event.type === 'complete') {
                 const newReadme = event.data;
+                const newHistory = [{ role: 'assistant', content: newReadme }];
                 setReadme(newReadme);
-                setChatHistory([{ role: 'assistant', content: newReadme }]);
+                setChatHistory(newHistory);
                 setIsGenerating(false);
                 setStatusEvents([]);
                 es.close();
-
+                saveSession({ url, readme: newReadme, chatHistory: newHistory });
+                saveToHistory(url, newReadme);
             } else if (event.type === 'error') {
                 setError(event.message || 'An error occurred while generating the README.');
                 setIsGenerating(false);
                 setStatusEvents([]);
                 es.close();
-
             } else {
                 setStatusEvents(prev => [...prev, event]);
             }
         };
-
         es.onerror = () => {
-            // onerror fires on natural close too — only set error if still generating
-            setIsGenerating(prev => {
-                if (prev) setError('Connection to server lost. Please try again.');
-                return false;
-            });
+            setIsGenerating(false);
             setStatusEvents([]);
             es.close();
         };
-    };
+    }, [url]);
 
-    // ── Refinement via POST (avoids URL-length limit with large chatHistory) ──
-    const refineReadme = async () => {
+    const refineReadme = useCallback(async () => {
         if (!chatInput.trim() || !readme) return;
-
         const userMessage = chatInput.trim();
         setError('');
         setIsRefining(true);
-
-        // Optimistically add the user message to chat
-        setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+        const optimisticHistory = [...chatHistory, { role: 'user', content: userMessage }];
+        setChatHistory(optimisticHistory);
         setChatInput('');
-
         try {
             const res = await fetch('http://localhost:5000/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    repoUrl: url,
-                    userPrompt: userMessage,
-                    chatHistory: chatHistory,
-                }),
+                body: JSON.stringify({ repoUrl: url, userPrompt: userMessage, chatHistory }),
             });
-
             const json = await res.json();
-
-            if (!res.ok || !json.success) {
-                throw new Error(json.error || 'Refinement failed');
-            }
-
+            if (!res.ok || !json.success) throw new Error(json.error || 'Refinement failed');
             const newReadme = json.data;
+            const newHistory = [...optimisticHistory, { role: 'assistant', content: newReadme }];
             setReadme(newReadme);
-            setChatHistory(prev => [...prev, { role: 'assistant', content: newReadme }]);
-
+            setChatHistory(newHistory);
+            saveSession({ url, readme: newReadme, chatHistory: newHistory });
+            saveToHistory(url, newReadme);
         } catch (err) {
             setError(err.message || 'Failed to refine README. Please try again.');
-            // Remove the optimistically added user message on failure
             setChatHistory(prev => prev.slice(0, -1));
-            setChatInput(userMessage); // restore input
+            setChatInput(userMessage);
         } finally {
             setIsRefining(false);
         }
-    };
+    }, [chatInput, readme, chatHistory, url]);
 
-    // ── Export / Download ─────────────────────────────────────────────────────
-    const exportReadme = () => {
+    const exportReadme = useCallback(() => {
         if (!readme) return;
         const blob = new Blob([readme], { type: 'text/markdown;charset=utf-8' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = 'README.md';
-        a.click();
-        URL.revokeObjectURL(url);
-
+        const link = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = link; a.download = 'README.md'; a.click();
+        URL.revokeObjectURL(link);
         setExportMsg('Downloaded!');
         setTimeout(() => setExportMsg(''), 2500);
-    };
+    }, [readme]);
 
     const isBusy = isGenerating || isRefining;
 
     return (
-        <div className="h-screen w-screen overflow-hidden flex relative bg-transparent text-on-surface">
-            {/* Full-screen loading overlay — only during initial generation */}
+        <div className="h-screen w-screen overflow-hidden flex relative bg-transparent text-on-surface transition-colors duration-300">
             {isGenerating && <LoadingOverlay statusEvents={statusEvents} />}
 
-            {/* TopAppBar */}
-            <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-gutter py-unit h-16 max-w-[1200px] mx-auto bg-white/60 dark:bg-surface-container-low/60 backdrop-blur-xl rounded-full mt-4 mx-container-padding border border-white/20 dark:border-outline-variant/20 shadow-sm shadow-primary/5">
+            <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-gutter py-unit h-16 max-w-[1200px] mx-auto bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-full mt-4 border border-white/20 dark:border-gray-800 shadow-sm shadow-primary/5 transition-colors">
                 <div className="flex items-center gap-8">
-                    <h1 className="font-headline-md text-headline-md font-bold text-primary">ReadmeAI</h1>
+                    <h1 className="font-headline-md text-headline-md font-bold text-primary dark:text-blue-400">ReadmeAI</h1>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Link to="/history" className="text-on-surface-variant hover:text-primary transition-colors font-label-sm px-4 py-2 bg-white/50 rounded-full border border-white/40">
+                    <Link to="/history" className="text-on-surface-variant dark:text-gray-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-label-sm px-4 py-2 bg-white/50 dark:bg-gray-800/50 rounded-full border border-white/40 dark:border-gray-700">
                         View History
                     </Link>
+                    <button 
+                        onClick={() => setIsDark(!isDark)}
+                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-on-surface-variant dark:text-gray-400"
+                    >
+                        <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
+                    </button>
                     <div className="flex items-center gap-2">
-                        <button className="text-on-surface-variant hover:text-primary hover:scale-105 transition-transform duration-200">
+                        <button className="text-on-surface-variant dark:text-gray-400 hover:text-primary dark:hover:text-blue-400 transition-transform duration-200 hover:scale-105">
                             <span className="material-symbols-outlined">account_circle</span>
-                        </button>
-                        <button className="text-on-surface-variant hover:text-primary hover:scale-105 transition-transform duration-200">
-                            <span className="material-symbols-outlined">settings</span>
                         </button>
                     </div>
                 </div>
             </header>
 
-            {/* Left Section — Main Workspace */}
             <main className="w-[70%] h-full pt-28 pb-8 pl-8 pr-12 flex flex-col gap-6 relative z-10">
-                {/* URL Bar */}
-                <div className="flex items-center gap-4 bg-white/60 backdrop-blur-xl border border-white/40 p-2 rounded-full shadow-[0_4px_24px_rgba(92,91,126,0.05)] transition-all">
-                    <div className="pl-4 text-on-surface-variant">
+                <div className="flex items-center gap-4 bg-white/70 dark:bg-gray-900/70 border border-white/40 dark:border-gray-800 p-2 rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.05)] transition-colors">
+                    <div className="pl-4 text-on-surface-variant dark:text-gray-500">
                         <span className="material-symbols-outlined">code</span>
                     </div>
                     <input
-                        className="flex-1 bg-transparent border-none focus:ring-0 text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant/50 outline-none"
+                        className="flex-1 bg-transparent border-none focus:ring-0 text-body-md font-body-md text-on-surface dark:text-gray-200 placeholder:text-on-surface-variant/50 outline-none"
                         placeholder="https://github.com/username/repository..."
                         type="text"
                         value={url}
@@ -275,19 +287,18 @@ export default function Generator() {
                     <button
                         onClick={generateReadme}
                         disabled={isBusy}
-                        className="bg-gradient-to-r from-primary-container to-white text-primary font-label-sm text-label-sm px-6 py-3 rounded-full hover:scale-[1.02] transition-all flex items-center gap-2 border border-white/50 shadow-sm shadow-primary/10 disabled:opacity-70 disabled:scale-100"
+                        className="bg-primary dark:bg-blue-600 text-white font-label-sm text-label-sm px-6 py-3 rounded-full hover:scale-[1.02] transition-transform flex items-center gap-2 shadow-sm disabled:opacity-70 disabled:scale-100"
                     >
                         <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
                             {isGenerating ? 'hourglass_empty' : 'auto_fix_high'}
                         </span>
-                        {isGenerating ? 'Generating…' : 'Generate README'}
+                        {isGenerating ? 'Generating…' : 'Generate'}
                     </button>
                 </div>
 
-                {/* Main Content Area */}
-                <section className="flex-1 bg-white/60 backdrop-blur-xl border border-white/40 rounded-[2rem] shadow-[0_8px_32px_rgba(92,91,126,0.04)] flex flex-col text-left p-12 overflow-y-auto custom-scrollbar">
+                <section className="flex-1 min-h-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl border border-white/40 dark:border-gray-800 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.04)] flex flex-col text-left p-12 overflow-y-auto custom-scrollbar readme-scroll-container transition-colors">
                     {error && (
-                        <div className="bg-error-container/50 border border-error/30 text-error p-4 rounded-xl mb-6 font-body-md flex items-start gap-3">
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 font-body-md flex items-start gap-3">
                             <span className="material-symbols-outlined text-[18px] mt-0.5 flex-shrink-0">error</span>
                             <span>{error}</span>
                         </div>
@@ -295,131 +306,83 @@ export default function Generator() {
 
                     {!readme && !isGenerating && !error ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-center">
-                            <div className="w-24 h-24 mb-6 rounded-full bg-primary-container/30 flex items-center justify-center border border-white/60">
-                                <span className="material-symbols-outlined text-[48px] text-primary/40" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
+                            <div className="w-24 h-24 mb-6 rounded-full bg-primary-container/30 dark:bg-blue-900/20 flex items-center justify-center border border-white/60 dark:border-gray-800">
+                                <span className="material-symbols-outlined text-[48px] text-primary/40 dark:text-blue-400/40" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
                             </div>
-                            <h2 className="font-headline-md text-headline-md text-on-surface mb-2">Ready to Document</h2>
-                            <p className="font-body-md text-body-md text-on-surface-variant max-w-md">Enter a repository URL in the bar above to generate a smart, comprehensive README using AI.</p>
+                            <h2 className="font-headline-md text-headline-md text-on-surface dark:text-gray-100 mb-2">Ready to Document</h2>
+                            <p className="font-body-md text-body-md text-on-surface-variant dark:text-gray-400 max-w-md">Enter a repository URL above to generate a professional README.</p>
                         </div>
                     ) : (
-                        <div className="prose prose-slate max-w-4xl mx-auto font-body-md text-on-surface">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    code({ node, inline, className, children, ...props }) {
-                                        const match = /language-(\w+)/.exec(className || '')
-                                        if (!inline && match && match[1] === 'mermaid') {
-                                            return <MermaidRenderer chart={String(children).replace(/\n$/, '')} />
-                                        }
-                                        return <code className={className} {...props}>{children}</code>
-                                    }
-                                }}
-                            >
-                                {readme}
-                            </ReactMarkdown>
-                        </div>
+                        <MarkdownPreview readme={readme} isDark={isDark} />
                     )}
                 </section>
             </main>
 
-            {/* Right Section — Sidebar */}
-            <aside className="flex flex-col p-gutter border-l border-white/20 bg-white/60 dark:bg-surface-container/60 backdrop-blur-xl h-full w-[30%] fixed right-0 top-0 shadow-none z-40 pt-28">
-                {/* Header */}
+            <aside className="flex flex-col p-gutter border-l border-white/20 dark:border-gray-800 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl h-full w-[30%] fixed right-0 top-0 z-40 pt-28 transition-colors">
                 <div className="mb-8 px-2">
-                    <h2 className="font-headline-md text-headline-md text-primary mb-1">AI Refinement</h2>
-                    <p className="font-body-md text-body-md text-on-surface-variant text-sm">
-                        {readme ? 'Refine your generated README.' : 'Drafting your README...'}
+                    <h2 className="font-headline-md text-headline-md text-primary dark:text-blue-400 mb-1">AI Refinement</h2>
+                    <p className="font-body-md text-body-md text-on-surface-variant dark:text-gray-400 text-sm">
+                        {readme ? 'Refine your README.' : 'Generate a README to start chatting.'}
                     </p>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex items-center gap-2 mb-6 bg-white/40 p-1 rounded-2xl border border-white/20">
-                    <button className="flex-1 bg-white/60 shadow-sm text-primary p-3 rounded-xl flex flex-col items-center gap-1 transition-all border border-white/40">
+                <div className="flex items-center gap-2 mb-6 bg-white/40 dark:bg-gray-800/40 p-1 rounded-2xl border border-white/20 dark:border-gray-700">
+                    <button className="flex-1 bg-white/60 dark:bg-gray-700 shadow-sm text-primary dark:text-blue-400 p-3 rounded-xl flex flex-col items-center gap-1 border border-white/40 dark:border-gray-600">
                         <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
                         <span className="font-label-sm text-label-sm text-[11px]">Refine</span>
                     </button>
-                    <Link to="/history" className="flex-1 text-on-surface-variant hover:bg-white/20 p-3 rounded-xl flex flex-col items-center gap-1 hover:backdrop-blur-2xl transition-all">
+                    <Link to="/history" className="flex-1 text-on-surface-variant dark:text-gray-400 hover:bg-white/20 dark:hover:bg-gray-800 p-3 rounded-xl flex flex-col items-center gap-1 transition-colors">
                         <span className="material-symbols-outlined text-[20px]">history</span>
                         <span className="font-label-sm text-label-sm text-[11px]">History</span>
                     </Link>
-                    {/* Export button — downloads README.md */}
                     <button
                         onClick={exportReadme}
                         disabled={!readme}
-                        title={readme ? 'Download README.md' : 'Generate a README first'}
-                        className="flex-1 text-on-surface-variant hover:bg-white/20 p-3 rounded-xl flex flex-col items-center gap-1 hover:backdrop-blur-2xl transition-all disabled:opacity-40 disabled:cursor-not-allowed relative"
+                        className="flex-1 text-on-surface-variant dark:text-gray-400 hover:bg-white/20 dark:hover:bg-gray-800 p-3 rounded-xl flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
                     >
                         <span className="material-symbols-outlined text-[20px]">ios_share</span>
-                        <span className="font-label-sm text-label-sm text-[11px]">
-                            {exportMsg || 'Export'}
-                        </span>
-                        {/* Green flash on download */}
-                        {exportMsg && (
-                            <span className="absolute inset-0 rounded-xl bg-green-400/10 border border-green-400/30 pointer-events-none" />
-                        )}
+                        <span className="font-label-sm text-label-sm text-[11px]">{exportMsg || 'Export'}</span>
                     </button>
                 </div>
 
-                {/* Scrollable Chat History */}
-                <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-6 custom-scrollbar mb-4">
-                    {/* Welcome bubble */}
+                <div className="flex-1 min-h-0 overflow-y-auto pr-2 flex flex-col gap-6 custom-scrollbar mb-4">
                     <div className="flex gap-3 max-w-[90%]">
-                        <div className="w-8 h-8 rounded-full bg-white/80 border border-white/40 flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined text-[18px] text-primary">robot_2</span>
+                        <div className="w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800 border border-white/40 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-[18px] text-primary dark:text-blue-400">robot_2</span>
                         </div>
-                        <div className="bg-white/50 backdrop-blur-md border border-white/30 rounded-2xl rounded-tl-sm p-4 text-body-md font-body-md text-on-surface text-sm leading-relaxed shadow-sm">
-                            Hi there! I'm ready to help you draft your README. Please enter a repository URL on the left to get started.
+                        <div className="bg-white/60 dark:bg-gray-800 border border-white/30 dark:border-gray-700 rounded-2xl rounded-tl-sm p-4 text-sm leading-relaxed shadow-sm text-on-surface dark:text-gray-200">
+                            {readme ? 'README loaded! How can I help refine it?' : 'Enter a repository URL on the left to get started.'}
                         </div>
                     </div>
 
-                    {/* Chat messages */}
                     {chatHistory.map((msg, idx) => (
                         <div key={idx} className={`flex gap-3 max-w-[90%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : ''}`}>
-                            {msg.role === 'user' ? (
-                                <>
-                                    <div className="w-8 h-8 rounded-full bg-primary-container border border-white/40 flex items-center justify-center flex-shrink-0">
-                                        <span className="material-symbols-outlined text-[18px] text-on-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-                                    </div>
-                                    <div className="bg-primary-container/50 backdrop-blur-md border border-white/40 rounded-2xl rounded-tr-sm p-4 text-body-md font-body-md text-on-surface text-sm leading-relaxed shadow-sm">
-                                        {msg.content}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="w-8 h-8 rounded-full bg-white/80 border border-white/40 flex items-center justify-center flex-shrink-0">
-                                        <span className="material-symbols-outlined text-[18px] text-primary">robot_2</span>
-                                    </div>
-                                    <div className="bg-white/50 backdrop-blur-md border border-white/30 rounded-2xl rounded-tl-sm p-4 text-body-md font-body-md text-on-surface text-sm leading-relaxed shadow-sm">
-                                        {idx === 0 ? 'README generated! You can now refine it below.' : 'Updated! Take a look at the changes on the left.'}
-                                    </div>
-                                </>
-                            )}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border border-white/40 dark:border-gray-700 ${msg.role === 'user' ? 'bg-primary dark:bg-blue-600' : 'bg-white/80 dark:bg-gray-800'}`}>
+                                <span className={`material-symbols-outlined text-[18px] ${msg.role === 'user' ? 'text-white' : 'text-primary dark:text-blue-400'}`}>
+                                    {msg.role === 'user' ? 'person' : 'robot_2'}
+                                </span>
+                            </div>
+                            <div className={`rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-primary/10 dark:bg-blue-900/30 border-primary/20 dark:border-blue-800/50 rounded-tr-sm' : 'bg-white/60 dark:bg-gray-800 border-white/30 dark:border-gray-700 rounded-tl-sm'} text-on-surface dark:text-gray-200`}>
+                                {idx === 0 && msg.role === 'assistant' ? 'README generated!' : msg.content}
+                            </div>
                         </div>
                     ))}
-
-                    {/* Typing indicator during refinement */}
                     {isRefining && (
                         <div className="flex gap-3 max-w-[90%]">
-                            <div className="w-8 h-8 rounded-full bg-white/80 border border-white/40 flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800 border border-white/40 flex items-center justify-center flex-shrink-0">
                                 <span className="material-symbols-outlined text-[18px] text-primary animate-spin">progress_activity</span>
                             </div>
-                            <div className="bg-white/50 backdrop-blur-md border border-white/30 rounded-2xl rounded-tl-sm p-4 text-body-md font-body-md text-on-surface-variant text-sm leading-relaxed shadow-sm italic flex items-center gap-2">
-                                <span>Refining your README</span>
-                                <span className="flex gap-1">
-                                    <span style={{ animation: 'bounce 1s infinite 0ms' }}>·</span>
-                                    <span style={{ animation: 'bounce 1s infinite 150ms' }}>·</span>
-                                    <span style={{ animation: 'bounce 1s infinite 300ms' }}>·</span>
-                                </span>
+                            <div className="bg-white/60 dark:bg-gray-800 rounded-2xl rounded-tl-sm p-4 text-sm italic flex items-center gap-2 text-gray-500">
+                                Refining...
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Bottom Chat Input */}
-                <div className="mt-auto bg-white/40 backdrop-blur-xl border border-white/50 rounded-[2rem] p-2 flex items-center gap-2 focus-within:bg-white/60 focus-within:border-primary/30 transition-all shadow-sm">
+                <div className="mt-auto bg-white/50 dark:bg-gray-800/50 border border-white/50 dark:border-gray-700 rounded-[2rem] p-2 flex items-center gap-2 focus-within:bg-white/70 dark:focus-within:bg-gray-800 focus-within:border-primary transition-colors shadow-sm">
                     <input
-                        className="flex-1 bg-transparent border-none focus:ring-0 text-body-md font-body-md text-on-surface text-sm placeholder:text-on-surface-variant/60 pl-3 outline-none"
-                        placeholder={readme ? 'Ask for changes...' : 'Generate a README first...'}
+                        className="flex-1 bg-transparent border-none focus:ring-0 text-sm dark:text-gray-200 placeholder:text-gray-400 pl-3 outline-none"
+                        placeholder="Ask for changes..."
                         type="text"
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
@@ -429,20 +392,11 @@ export default function Generator() {
                     <button
                         onClick={refineReadme}
                         disabled={!readme || isBusy || !chatInput.trim()}
-                        className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform shadow-sm shadow-primary/20 disabled:opacity-50 disabled:scale-100"
+                        className="w-10 h-10 rounded-full bg-primary dark:bg-blue-600 text-white flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50"
                     >
-                        <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            {isRefining ? 'hourglass_empty' : 'send'}
-                        </span>
+                        <span className="material-symbols-outlined text-[18px]">send</span>
                     </button>
                 </div>
-
-                <style>{`
-                    @keyframes bounce {
-                        0%, 100% { transform: translateY(0); opacity: 0.4; }
-                        50%       { transform: translateY(-4px); opacity: 1; }
-                    }
-                `}</style>
             </aside>
         </div>
     );

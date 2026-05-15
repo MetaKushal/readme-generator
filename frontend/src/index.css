@@ -2,14 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background: linear-gradient(135deg, #f8f9ff 0%, #eaf1ff 50%, #eff4ff 100%);
-    background-attachment: fixed;
-    color: #0d1c2e;
+:root {
+    --bg-primary: linear-gradient(135deg, #f8f9ff 0%, #eaf1ff 50%, #eff4ff 100%);
+    --bg-surface: rgba(255, 255, 255, 0.7);
+    --text-main: #0d1c2e;
+    --text-muted: #5c5c7b;
+    --border-main: rgba(92, 91, 126, 0.12);
+    --accent: #a259ff;
+    --scrollbar-thumb: #d8d6ff;
 }
 
-/* Custom dark scrollbar for the markdown preview */
+.dark {
+    --bg-primary: #0d1117;
+    --bg-surface: #161b22;
+    --text-main: #c9d1d9;
+    --text-muted: #8b949e;
+    --border-main: #30363d;
+    --accent: #58a6ff;
+    --scrollbar-thumb: #30363d;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg-primary);
+    background-attachment: fixed;
+    color: var(--text-main);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -19,20 +40,72 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #d8d6ff;
+    background: var(--scrollbar-thumb);
     border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #c4c3eb;
-}
-
-/* Hide scrollbar for the history section if needed */
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(92, 91, 126, 0.2);
-    border-radius: 4px;
+/* ─── Animations ─── */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes bounce-dot {
+    0%, 100% { transform: translateY(0);    opacity: 0.4; }
+    50%       { transform: translateY(-4px); opacity: 1;   }
+}
+
+.animate-spin-svg {
+    animation: spin 1.4s linear infinite;
+    will-change: transform;
+}
+
+.dot-1 { animation: bounce-dot 1s infinite 0ms;   }
+.dot-2 { animation: bounce-dot 1s infinite 150ms; }
+.dot-3 { animation: bounce-dot 1s infinite 300ms; }
+
+/* ─── Scroll performance ─── */
+.readme-scroll-container {
+    contain: content;
+    transform: translateZ(0);
+    will-change: scroll-position;
+}
+
+.prose > * {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 2rem;
+}
+
+.dark .prose {
+    color: #c9d1d9;
+}
+
+.dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 {
+    color: #f0f6fc;
+}
+
+.dark .prose a {
+    color: #58a6ff;
+}
+
+.dark .prose code {
+    background-color: #30363d;
+    color: #e6edf3;
+}
+
+/* ─── Loading overlay backdrop ─── */
+.overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(248, 249, 255, 0.72);
+    transform: translateZ(0);
+    will-change: opacity;
+}
+
+.dark .overlay-backdrop {
+    background: rgba(13, 17, 23, 0.8);
 }
