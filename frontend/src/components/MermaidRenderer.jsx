@@ -1,76 +1,71 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, memo, useState } from 'react';
 import mermaid from 'mermaid';
+import { AlertCircle } from 'lucide-react';
+
+const cleanChartCode = (code) => {
+    if (!code) return '';
+    let cleaned = code.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
+    cleaned = cleaned.replace(/\//g, '');
+
+    const lines = cleaned.split(/\r?\n/);
+    return lines.map(line => {
+        let l = line.trim();
+        if (!l) return '';
+        if (/^(graph|flowchart|sequenceDiagram)/i.test(l)) return l;
+
+        // If the AI disobeys and puts quotes on edge labels, this strips them out safely
+        // e.g., A -->|"Label"| B  becomes  A -->|Label| B
+        l = l.replace(/-->\s*\|"([^"]+)"\|/g, '-->|$1|');
+        l = l.replace(/--\s*"([^"]+)"\s*-->/g, '-->|$1|');
+
+        return l;
+    }).join('\n');
+};
 
 const MermaidRenderer = memo(function MermaidRenderer({ chart, isDark }) {
-    const containerRef = useRef(null);
+    const [svgContent, setSvgContent] = useState(null);
+    const [hasError, setHasError] = useState(false);
+    const [cleanedCode, setCleanedCode] = useState('');
 
     useEffect(() => {
-        // Configure mermaid based on current theme
-        const config = {
+        mermaid.initialize({
             startOnLoad: false,
             theme: isDark ? 'dark' : 'neutral',
             securityLevel: 'loose',
             fontFamily: 'Plus Jakarta Sans, sans-serif',
-            themeVariables: isDark ? {
-                darkMode: true,
-                background: '#161b22',
-                primaryColor: '#21262d',
-                primaryTextColor: '#c9d1d9',
-                primaryBorderColor: '#30363d',
-                lineColor: '#8b949e',
-                secondaryColor: '#161b22',
-                tertiaryColor: '#161b22',
-            } : {
-                darkMode: false,
-                background: '#ffffff',
-                primaryColor: '#f8f9ff',
-                primaryTextColor: '#0d1c2e',
-                primaryBorderColor: 'rgba(92,91,126,0.12)',
-                lineColor: '#5c5c7b',
-            },
-            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
-            sequence: { useMaxWidth: true },
-        };
+            suppressErrorRendering: true,
+        });
 
-        mermaid.initialize(config);
+        // OFFICIAL METHOD: Override global parse error to stop DOM leaks
+        mermaid.parseError = () => { };
     }, [isDark]);
 
     useEffect(() => {
-        if (!containerRef.current || !chart) return;
-
+        if (!chart) return;
         let cancelled = false;
 
         const renderChart = async () => {
+            const finalCode = cleanChartCode(chart);
+            setCleanedCode(finalCode);
+
             try {
-                // Clear previous content
-                containerRef.current.innerHTML = '';
-                
-                // Unique ID for this render
-                const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-                
-                // Render the SVG
-                const { svg } = await mermaid.render(id, chart);
-                
+                // OFFICIAL METHOD: Parse syntax BEFORE rendering to guarantee no crashes
+                await mermaid.parse(finalCode);
+
                 if (!cancelled) {
-                    containerRef.current.innerHTML = svg;
-                    const svgEl = containerRef.current.querySelector('svg');
-                    if (svgEl) {
-                        svgEl.style.maxWidth = '100%';
-                        svgEl.style.height = 'auto';
-                        svgEl.removeAttribute('width');
-                        // Ensure text is visible in both themes
-                        svgEl.style.color = isDark ? '#c9d1d9' : '#0d1c2e';
-                    }
+                    const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+                    const { svg } = await mermaid.render(id, finalCode);
+
+                    const responsiveSvg = svg.replace(/<svg /, '<svg style="max-width: 100%; height: auto;" ');
+                    setSvgContent(responsiveSvg);
+                    setHasError(false);
                 }
             } catch (error) {
-                console.error('Mermaid rendering failed:', error);
-                if (!cancelled) {
-                    containerRef.current.innerHTML = `
-                        <div style="display:flex;align-items:center;gap:0.5rem;color:#ef4444;font-size:0.8rem;padding:1rem;background:${isDark ? '#161b22' : '#fff'};border-radius:0.5rem">
-                            <span class="material-symbols-outlined" style="font-size:18px">error</span>
-                            Mermaid syntax error. Check the code.
-                        </div>`;
-                }
+                console.warn('Caught Mermaid syntax error, showing fallback UI.');
+                if (!cancelled) setHasError(true);
+            } finally {
+                // Final safety sweep for any ghost SVGs
+                document.querySelectorAll('svg[id^="dmermaid-"]').forEach(svg => svg.remove());
             }
         };
 
@@ -79,15 +74,32 @@ const MermaidRenderer = memo(function MermaidRenderer({ chart, isDark }) {
     }, [chart, isDark]);
 
     return (
-        <div
-            ref={containerRef}
-            className="flex justify-center my-10 p-6 rounded-2xl border transition-all duration-300 overflow-x-auto"
-            style={{
-                background: isDark ? '#161b22' : 'rgba(255,255,255,0.7)',
-                border: isDark ? '1px solid #30363d' : '1px solid rgba(92,91,126,0.12)',
-                boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(92,91,126,0.06)',
-            }}
-        />
+        <div className={`flex justify-center my-8 p-6 rounded-2xl border transition-all duration-300 overflow-x-auto w-full ${isDark ? 'bg-gray-900 border-gray-700 shadow-lg' : 'bg-white border-gray-200 shadow-sm'
+            }`}>
+            {!hasError && svgContent && (
+                <div
+                    className={`w-full flex justify-center [&>svg]:!max-w-full [&>svg]:!h-auto ${isDark ? 'text-gray-200' : 'text-gray-800'}`}
+                    dangerouslySetInnerHTML={{ __html: svgContent }}
+                />
+            )}
+
+            {hasError && (
+                <div className={`flex flex-col gap-3 p-6 rounded-xl border w-full text-left ${isDark ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-red-50 border-red-200 text-red-800'
+                    }`}>
+                    <div className={`flex items-center gap-2 font-semibold text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                        <AlertCircle className="w-5 h-5" />
+                        Diagram Syntax Error
+                    </div>
+                    <p className="m-0 text-xs opacity-80">
+                        Mermaid couldn't render this structure. Here is the raw diagram code:
+                    </p>
+                    <pre className={`mt-3 p-4 rounded-lg overflow-x-auto font-mono text-xs whitespace-pre-wrap border ${isDark ? 'bg-gray-950 border-gray-700' : 'bg-white border-red-100'
+                        }`}>
+                        {cleanedCode}
+                    </pre>
+                </div>
+            )}
+        </div>
     );
 });
 

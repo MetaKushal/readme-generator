@@ -7,7 +7,7 @@ import { saveSession, loadSession, saveToHistory } from '../utils/storage';
 
 const PROVIDER_META = {
     Gemini: { icon: '✦', color: '#4f8ef7', bg: 'rgba(79,142,247,0.12)' },
-    Groq:   { icon: '⚡', color: '#a259ff', bg: 'rgba(162,89,255,0.12)' },
+    Groq: { icon: '⚡', color: '#a259ff', bg: 'rgba(162,89,255,0.12)' },
     Cohere: { icon: '◈', color: '#19c37d', bg: 'rgba(25,195,125,0.12)' },
 };
 
@@ -81,8 +81,8 @@ const StatusCard = memo(function StatusCard({ statusEvents }) {
                                         width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
                                         background: ev.type === 'success' ? '#19c37d'
                                             : ev.type === 'fallback' ? '#f59e0b'
-                                            : ev.type === 'error'   ? '#ef4444'
-                                            : (meta.color || '#a259ff'),
+                                                : ev.type === 'error' ? '#ef4444'
+                                                    : (meta.color || '#a259ff'),
                                     }} />
                                     <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: '0.78rem', lineHeight: 1.4 }}>
                                         {ev.message}
@@ -112,12 +112,17 @@ const MarkdownPreview = memo(function MarkdownPreview({ readme, isDark }) {
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    code({ node, inline, className, children, ...props }) {
+                    // FIX: Extract 'node' and 'inline' so they don't break the HTML <code> element
+                    code(props) {
+                        const { children, className, node, inline, ...rest } = props;
                         const match = /language-(\w+)/.exec(className || '');
-                        if (!inline && match && match[1] === 'mermaid') {
+
+                        if (match && match[1] === 'mermaid') {
                             return <MermaidRenderer chart={String(children).replace(/\n$/, '')} isDark={isDark} />;
                         }
-                        return <code className={className} {...props}>{children}</code>;
+
+                        // Pass ONLY valid HTML attributes (...rest) to the code tag
+                        return <code className={className} {...rest}>{children}</code>;
                     }
                 }}
             >
@@ -134,15 +139,15 @@ export default function Generator() {
         return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
     });
 
-    const [url, setUrl]               = useState(saved?.url || '');
-    const [readme, setReadme]         = useState(saved?.readme || '');
+    const [url, setUrl] = useState(saved?.url || '');
+    const [readme, setReadme] = useState(saved?.readme || '');
     const [chatHistory, setChatHistory] = useState(saved?.chatHistory || []);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isRefining, setIsRefining] = useState(false);
-    const [chatInput, setChatInput]   = useState('');
-    const [error, setError]           = useState('');
+    const [chatInput, setChatInput] = useState('');
+    const [error, setError] = useState('');
     const [statusEvents, setStatusEvents] = useState([]);
-    const [exportMsg, setExportMsg]   = useState('');
+    const [exportMsg, setExportMsg] = useState('');
 
     const esRef = useRef(null);
 
@@ -243,6 +248,16 @@ export default function Generator() {
         setTimeout(() => setExportMsg(''), 2500);
     }, [readme]);
 
+    const clearAll = useCallback(() => {
+        setUrl('');
+        setReadme('');
+        setChatHistory([]);
+        setError('');
+        setStatusEvents([]);
+        sessionStorage.removeItem('readmeai_session');
+    }, []);
+
+
     const isBusy = isGenerating || isRefining;
 
     return (
@@ -257,7 +272,7 @@ export default function Generator() {
                     <Link to="/history" className="text-on-surface-variant dark:text-gray-400 hover:text-primary dark:hover:text-blue-400 transition-colors font-label-sm px-4 py-2 bg-white/50 dark:bg-gray-800/50 rounded-full border border-white/40 dark:border-gray-700">
                         View History
                     </Link>
-                    <button 
+                    <button
                         onClick={() => setIsDark(!isDark)}
                         className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-on-surface-variant dark:text-gray-400"
                     >
@@ -343,6 +358,14 @@ export default function Generator() {
                         <span className="material-symbols-outlined text-[20px]">ios_share</span>
                         <span className="font-label-sm text-label-sm text-[11px]">{exportMsg || 'Export'}</span>
                     </button>
+                    <button
+                        onClick={clearAll}
+                        disabled={!readme && !url && chatHistory.length === 0}
+                        className="flex-1 text-on-surface-variant dark:text-gray-400 hover:bg-red-500/10 hover:text-red-500 p-3 rounded-xl flex flex-col items-center gap-1 transition-colors disabled:opacity-40"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                        <span className="font-label-sm text-label-sm text-[11px]">Clear</span>
+                    </button>
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto pr-2 flex flex-col gap-6 custom-scrollbar mb-4">
@@ -363,7 +386,21 @@ export default function Generator() {
                                 </span>
                             </div>
                             <div className={`rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-primary/10 dark:bg-blue-900/30 border-primary/20 dark:border-blue-800/50 rounded-tr-sm' : 'bg-white/60 dark:bg-gray-800 border-white/30 dark:border-gray-700 rounded-tl-sm'} text-on-surface dark:text-gray-200`}>
-                                {idx === 0 && msg.role === 'assistant' ? 'README generated!' : msg.content}
+                                {msg.role === 'assistant' ? (
+                                    idx === 0 ? (
+                                        <div className="flex flex-col gap-1 text-left">
+                                            <span className="font-semibold text-primary dark:text-blue-400">README generated!</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">The initial draft is ready in the preview panel.</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-1 text-left">
+                                            <span className="font-semibold text-primary dark:text-blue-400">README updated!</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">Applied changes based on: "{chatHistory[idx - 1]?.content || 'your request'}"</span>
+                                        </div>
+                                    )
+                                ) : (
+                                    msg.content
+                                )}
                             </div>
                         </div>
                     ))}
